@@ -1,6 +1,6 @@
 {
   "name": "idea-lab",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "repository": {
     "type": "git",
@@ -8,10 +8,11 @@
   },
   "type": "module",
   "description": "A simple workspace to improve a software idea with AI, understand the evidence, and prepare a focused build brief.",
-  "engines": { "node": ">=22.15.0" },
+  "engines": { "node": "22.x" },
   "scripts": {
     "start": "node --env-file-if-exists=.env server.mjs",
     "dev": "node --watch --env-file-if-exists=.env server.mjs",
+    "build:vercel": "node scripts/build-vercel.mjs",
     "test": "node --test"
   }
 }

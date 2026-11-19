@@ -7,7 +7,7 @@ Turn a software idea into a sharper business hypothesis. Idea Lab investigates t
 - Set a budget of two to five research rounds, with explicit test and stop decisions.
 - Connect Jobs to Be Done, measurable requirements, competitors, counterideas and an evidence ledger.
 - Learn from three worked examples featuring Uber Eats, Slack / Microsoft Teams and Calendly.
-- Choose an API or eligible subscription CLI, keep research locally and export an MVP implementation prompt.
+- Use an API online or an eligible subscription CLI locally, keep research in your browser and export an MVP implementation prompt.
 
 ## Quick start
 
@@ -23,15 +23,17 @@ Open [http://localhost:3000](http://localhost:3000). The app has no npm dependen
 
 ## Set up your AI in Settings
 
-Open **Settings** and choose a provider.
+Open **Settings** and choose a provider. The online Vercel version uses the OpenAI API; local Node.js and Docker runs also support subscription CLIs.
 
 - **OpenAI API:** enter your API key in the dedicated settings form and save it. Use the connection check to verify access without running a paid analysis. Research uses API billing; a ChatGPT subscription does not pay these API charges.
-- **Codex / ChatGPT subscription:** use an existing eligible ChatGPT login in the official Codex CLI installed alongside the server.
-- **Claude subscription:** use an existing eligible subscription login in the official Claude Code CLI installed alongside the server.
+- **Codex / ChatGPT subscription, local only:** use an existing eligible ChatGPT login in the official Codex CLI installed alongside the server.
+- **Claude subscription, local only:** use an existing eligible subscription login in the official Claude Code CLI installed alongside the server.
 
 An installed CLI still needs a valid subscription login, available model access and quota. The app checks the reported login method when research starts. It does not silently switch a subscription provider to API billing.
 
-Saved API credentials stay on the app server in `.data/settings.json`, with a private directory and owner-only file permissions. They are sent directly from Settings to the server, never saved in browser storage, returned in saved settings or included in research exports. A blank key field keeps the current key; the explicit remove action clears it and disables environment-key fallback. Restarting the app preserves saved settings. Keep the app local to your computer.
+**Local Node.js / Docker:** saved API credentials stay on the app server in `.data/settings.json`, with a private directory and owner-only file permissions. They are sent directly from Settings to the server, never saved in browser localStorage, returned in saved settings or included in research exports. A blank key field keeps the current key; the explicit remove action clears it and disables environment-key fallback. Restarting the app preserves saved settings. Keep this local server on your computer.
+
+**Online Vercel:** each visitor supplies their own API key. Settings use an encrypted browser cookie that expires after 24 hours, with `HttpOnly` and `Secure` protections. The key is decrypted only on the server when needed and is never returned in settings responses, saved in localStorage or included in exports. Use Settings to remove the saved key. Online deployment setup is described below.
 
 The connection check verifies authentication only. It does not promise that a particular model or research request will complete. Provider usage, plan limits and account permissions still apply.
 
@@ -85,6 +87,24 @@ Generate, copy or download an implementation prompt from the chosen analysis. It
 
 Generating the prompt does not execute it, build the MVP or deploy anything. Paste it into your preferred coding assistant when you are ready to implement the proposed test.
 
+## Deploy to Vercel
+
+The online version serves the same workspace, examples and explanation pages. Research uses each visitor’s OpenAI API key; the local subscription CLIs and `.data` credential file are not used online. Examples and How it works remain available without a key.
+
+Import this repository into Vercel and add **`IDEA_LAB_SESSION_SECRET`** as a sensitive environment variable for each deployment environment you will use. Generate a value from at least 32 random bytes, for example:
+
+```sh
+node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64'))"
+```
+
+Keep the generated value in Vercel environment settings, outside the repository and public client configuration. Keep it stable across deployments in the same environment; changing it invalidates existing encrypted visitor cookies. Configure Preview as well as Production if both will accept saved visitor keys.
+
+Do **not** configure an owner’s `OPENAI_API_KEY` on the public deployment. The online app requires a key from the individual visitor and does not use an owner-key fallback. There is no shared credential database: the encrypted cookie belongs to that browser and expires after 24 hours. API usage is billed to the account associated with the visitor’s key.
+
+The deployment configuration uses Node.js 22, `node scripts/build-vercel.mjs` as the build command, `dist` for static output and `api/index.mjs` for API requests, with a 300-second function duration. Each research round is a separate request; a slow round can time out before the overall round budget is exhausted. Review the deployed `/api/status` and Settings connection check before running research.
+
+Vercel Functions have a read-only application filesystem and temporary instance-local scratch space, so online settings use the encrypted session cookie rather than the local settings file. The configured duration fits the documented Hobby maximum with Fluid compute. See [Vercel runtime storage limits](https://vercel.com/docs/functions/runtimes#file-system-support), [function duration limits](https://vercel.com/docs/functions/configuring-functions/duration#duration-limits) and [deployment configuration](https://vercel.com/docs/project-configuration/vercel-json).
+
 ## Optional: subscription CLI setup
 
 Install the official CLI in the same environment that runs the server and sign in there. The native CLI manages its own login; Idea Lab does not extract browser cookies or copy host tokens.
@@ -124,7 +144,7 @@ docker exec -it idea-lab claude auth login
 
 Follow the displayed browser instructions. Device login depends on account support. Keep these volumes private; they persist after the container is removed. Do not mount your host home directory or copy its credential files into the image. The app runs as a non-root user and includes a health check. To stop it, interrupt it or run `docker stop idea-lab`.
 
-For a different server settings directory, configure `IDEA_LAB_DATA_DIR`. An optional `OPENAI_API_KEY` environment value is used when no saved choice overrides it. Settings can explicitly remove that fallback. To use environment configuration locally, copy `.env.example` to `.env` and restart; never include credentials in the image or source control.
+For a different local server settings directory, configure `IDEA_LAB_DATA_DIR`. On local runs, an optional `OPENAI_API_KEY` environment value is used when no saved choice overrides it. Settings can explicitly remove that fallback. To use environment configuration locally, copy `.env.example` to `.env` and restart; never include credentials in the image or source control.
 
 ## Verification and project files
 
@@ -138,8 +158,11 @@ Tests cover server and settings boundaries, mocked provider research, subscripti
 public/       English UI, workflow helpers, demo and curated examples
 lib/          Analysis contracts, prompts and provider adapters
 .data/        Private server settings, excluded from source and image
+api/          Online Node.js API entrypoint
+scripts/      Vercel static build helper
 test/         Server, settings, provider and workflow tests
 server.mjs    HTTP server and provider orchestration
 Dockerfile    One-container runtime
+vercel.json   Online build, API routing and function duration
 .env.example  Configuration without credentials
 ```

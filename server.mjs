@@ -8,6 +8,7 @@ import { problemInstructions, marketInstructions } from './lib/prompts.mjs';
 import { AppError } from './lib/errors.mjs';
 import { cliResponse, ensureSubscriptionLogin, providerNames, providerStatus, runCommand, validateProvider } from './lib/cli-providers.mjs';
 import { createSettingsStore, sanitizedSettings } from './lib/settings-store.mjs';
+import { createHostedSettings, hostedProviderStatus, requireHostedProvider } from './lib/hosted-settings.mjs';
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const publicRoot = path.join(projectRoot, 'public');
@@ -37,6 +38,20 @@ export function validateInput(body) {
 
 async function readJson(req, limit = MAX_BODY) {
   if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '')) throw new AppError(415, 'JSON_REQUIRED', 'Send the request as JSON.');
+  // Serverless adapters may have parsed JSON already. Validate the same size
+  // boundary before using it rather than waiting on an already-consumed stream.
+  let preparedBody;
+  try { preparedBody = req.body; }
+  catch { throw new AppError(400, 'INVALID_JSON', 'The JSON request is invalid.'); }
+  if (preparedBody !== undefined) {
+    let text;
+    try { text = Buffer.isBuffer(preparedBody) ? preparedBody.toString('utf8') : typeof preparedBody === 'string' ? preparedBody : JSON.stringify(preparedBody); }
+    catch { throw new AppError(400, 'INVALID_JSON', 'The JSON request is invalid.'); }
+    if (typeof text !== 'string') throw new AppError(400, 'INVALID_JSON', 'The JSON request is invalid.');
+    if (Buffer.byteLength(text, 'utf8') > limit) throw new AppError(413, 'BODY_TOO_LARGE', 'The request is too large.');
+    try { return JSON.parse(text); }
+    catch { throw new AppError(400, 'INVALID_JSON', 'The JSON request is invalid.'); }
+  }
   return new Promise((resolve, reject) => {
     let size = 0;
     let settled = false;
@@ -64,12 +79,13 @@ async function readJson(req, limit = MAX_BODY) {
   });
 }
 
-function requireSameOrigin(req) {
+function requireSameOrigin(req, hosted = false) {
   let localHost = false;
   try { localHost = ['localhost', '127.0.0.1', '[::1]'].includes(new URL(`http://${req.headers.host}`).hostname); } catch { /* Reject malformed hosts. */ }
-  if (!localHost) throw new AppError(403, 'ORIGIN_REJECTED', 'Open this local application using localhost or its loopback address.');
+  if (!hosted && !localHost) throw new AppError(403, 'ORIGIN_REJECTED', 'Open this local application using localhost or its loopback address.');
   const origin = req.headers.origin;
-  let sameOrigin = !origin;
+  const write = !['GET', 'HEAD'].includes(req.method);
+  let sameOrigin = !origin && (!hosted || !write);
   try {
     if (origin) {
       const parsed = new URL(origin);
@@ -243,15 +259,22 @@ export async function analyzeIdea(input, { apiKey = '', provider = 'openai', mod
 }
 
 export function createApplication(options = {}) {
-  const { apiKey = process.env.OPENAI_API_KEY || '', model = process.env.OPENAI_MODEL || DEFAULT_MODEL, fetchImpl = fetch, cliRunner = runCommand, cliCommands = { codex: process.env.CODEX_BIN || 'codex', claude: process.env.CLAUDE_BIN || 'claude' }, cliModels = { codex: process.env.CODEX_MODEL || '', claude: process.env.CLAUDE_MODEL || '' }, providerAvailability, timeoutMs = 240000 } = options;
+  const hosted = options.hosted === true;
+  const { apiKey = hosted ? '' : process.env.OPENAI_API_KEY || '', model = process.env.OPENAI_MODEL || DEFAULT_MODEL, sessionSecret = process.env.IDEA_LAB_SESSION_SECRET || '', now = Date.now, fetchImpl = fetch, cliRunner = runCommand, cliCommands = { codex: process.env.CODEX_BIN || 'codex', claude: process.env.CLAUDE_BIN || 'claude' }, cliModels = { codex: process.env.CODEX_MODEL || '', claude: process.env.CLAUDE_MODEL || '' }, providerAvailability, timeoutMs = hosted ? 130000 : 240000 } = options;
   // Explicit credential injection is useful for embeddings/tests and defaults to
   // session-only settings. Production uses .data; callers can select an isolated
   // persistent directory or opt out explicitly with settingsDirectory: null.
   const settingsDirectory = Object.hasOwn(options, 'settingsDirectory') ? options.settingsDirectory : Object.hasOwn(options, 'apiKey') ? null : process.env.IDEA_LAB_DATA_DIR || path.join(projectRoot, '.data');
-  const settingsStore = createSettingsStore({ directory: settingsDirectory, environmentApiKey: apiKey, defaultModel: model });
-  const publicSettings = async (settings) => sanitizedSettings(settings, await providerStatus({ apiKey: settings.apiKey, commands: cliCommands, availability: providerAvailability }));
+  const localSettingsStore = hosted ? null : createSettingsStore({ directory: settingsDirectory, environmentApiKey: apiKey, defaultModel: model });
+  const providersFor = async (settings) => hosted ? hostedProviderStatus(settings.apiKeyConfigured) : providerStatus({ apiKey: settings.apiKey, commands: cliCommands, availability: providerAvailability });
+  const runtime = hosted ? { runtime: 'hosted', storage: 'encrypted_cookie' } : { runtime: 'local', storage: 'local' };
+  const publicSettings = async (settings) => ({ ...sanitizedSettings(settings, await providersFor(settings)), ...runtime, ...(hosted ? { needsSessionSecret: settings.needsSessionSecret } : {}) });
+  const requireHostedSession = (settings) => {
+    if (hosted && settings.needsSessionSecret) throw new AppError(503, 'HOSTED_SESSION_UNAVAILABLE', 'Online connection setup is not ready yet. The deployment owner must configure IDEA_LAB_SESSION_SECRET. No shared API key is available.');
+  };
   let active = false;
   const server = http.createServer(async (req, res) => {
+    const settingsStore = hosted ? createHostedSettings({ req, res, sessionSecret, defaultModel: model, now }) : localSettingsStore;
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
@@ -264,23 +287,25 @@ export function createApplication(options = {}) {
       const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
       if (url.pathname === '/api/status' && req.method === 'GET') {
         const settings = await settingsStore.get();
-        return send(200, { configured: settings.apiKeyConfigured, model: settings.model, providers: await providerStatus({ apiKey: settings.apiKey, commands: cliCommands, availability: providerAvailability }) });
+        return send(200, { configured: settings.apiKeyConfigured, model: settings.model, providers: await providersFor(settings), ...runtime, ...(hosted ? { needsSessionSecret: settings.needsSessionSecret } : {}) });
       }
       if (url.pathname === '/api/settings' && req.method === 'GET') {
-        requireSameOrigin(req);
+        requireSameOrigin(req, hosted);
         return send(200, await publicSettings(await settingsStore.get()));
       }
       if (url.pathname === '/api/settings' && req.method === 'PUT') {
-        requireSameOrigin(req);
+        requireSameOrigin(req, hosted);
         const settings = await settingsStore.update(await readJson(req, 4096));
         return send(200, await publicSettings(settings));
       }
       if (url.pathname === '/api/settings/test' && req.method === 'POST') {
-        requireSameOrigin(req);
+        requireSameOrigin(req, hosted);
         const body = await readJson(req, 1024);
         if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some((key) => key !== 'provider')) throw new AppError(400, 'INVALID_SETTINGS', 'Save settings first, then test the selected provider.');
         const settings = await settingsStore.get();
         const provider = validateProvider(Object.hasOwn(body, 'provider') ? body.provider : settings.provider);
+        if (hosted) requireHostedProvider(provider);
+        requireHostedSession(settings);
         const controller = new AbortController();
         res.on('close', () => { if (!res.writableEnded) controller.abort(); });
         if (provider === 'openai') await testApiAuthentication(settings.apiKey, fetchImpl, controller.signal);
@@ -292,22 +317,24 @@ export function createApplication(options = {}) {
         return send(200, { ok: true, provider, message: provider === 'openai' ? 'API key accepted. No model request was made; model access and available usage were not tested.' : 'Subscription sign-in detected. No model request was made; model access and remaining quota were not tested.' });
       }
       if (url.pathname === '/api/analyze' && req.method === 'POST') {
-        requireSameOrigin(req);
+        requireSameOrigin(req, hosted);
         const body = await readJson(req);
         const input = validateInput(body);
         const settings = await settingsStore.get();
         const provider = validateProvider(Object.hasOwn(body, 'provider') ? body.provider : settings.provider);
+        if (hosted) requireHostedProvider(provider);
+        requireHostedSession(settings);
         if (provider === 'openai' && !settings.apiKeyConfigured) throw new AppError(503, 'AI_NOT_CONFIGURED', 'Add an API key in Settings, or choose a signed-in subscription CLI.');
         if (provider !== 'openai') {
           const providers = await providerStatus({ apiKey: settings.apiKey, commands: cliCommands, availability: providerAvailability });
           if (!providers.find((item) => item.id === provider)?.available) throw new AppError(503, 'CLI_NOT_INSTALLED', 'Install the selected official CLI on the server and sign in with your subscription first.');
         }
-        if (active) throw new AppError(429, 'ANALYSIS_BUSY', 'Another analysis is already running. Wait for it to finish.');
-        active = true;
+        if (!hosted && active) throw new AppError(429, 'ANALYSIS_BUSY', 'Another analysis is already running. Wait for it to finish.');
+        if (!hosted) active = true;
         const controller = new AbortController();
         res.on('close', () => { if (!res.writableEnded) controller.abort(); });
         try { return send(200, await analyzeIdea(input, { apiKey: settings.apiKey, provider, model: settings.model, fetchImpl, cliRunner, cliCommands, cliModels, timeoutMs, signal: controller.signal })); }
-        finally { active = false; }
+        finally { if (!hosted) active = false; }
       }
       if (['/api/status', '/api/analyze', '/api/settings', '/api/settings/test'].includes(url.pathname)) throw new AppError(405, 'METHOD_NOT_ALLOWED', 'Method not allowed.');
       if (url.pathname.startsWith('/api/')) throw new AppError(404, 'NOT_FOUND', 'This route does not exist.');
@@ -329,7 +356,7 @@ export function createApplication(options = {}) {
       send(status, { error: error instanceof AppError ? error.message : 'The request could not be completed.', code: error instanceof AppError ? error.code : 'INTERNAL_ERROR' });
     }
   });
-  server.requestTimeout = 520000;
+  server.requestTimeout = hosted ? 285000 : 520000;
   server.headersTimeout = 15000;
   return server;
 }

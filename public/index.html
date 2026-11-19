@@ -19,16 +19,17 @@
       <button class="icon-button dialog-close" data-close-dialog="settings" aria-label="Close connection settings">×</button>
       <span class="eyebrow">YOUR AI CONNECTION</span>
       <h2 id="settings-title">Connect once. Then start with an idea.</h2>
-      <p>Save the connection this app should use. It stays on the computer running Idea Lab.</p>
+      <p id="settings-storage-intro">Save the connection this app should use. It stays on the computer running Idea Lab.</p>
       <form id="settings-form" autocomplete="off">
         <div id="api-fields">
           <label for="settings-key">OpenAI API key</label>
           <input id="settings-key" type="password" autocomplete="new-password" spellcheck="false" maxlength="512" placeholder="Paste your API key">
           <p id="key-state" class="small muted"></p>
-          <p class="small muted">Get a key from your <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI account</a>. API usage is billed separately from a ChatGPT subscription. The key is saved on the server, never in this browser’s saved investigations or build brief.</p>
+          <p class="small muted">Get a key from your <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI account</a>. API usage is billed separately from a ChatGPT subscription.</p>
+          <p id="key-storage-info" class="small muted">The key is saved on the server, never in this browser’s saved investigations or build brief.</p>
         </div>
         <details class="optional-details settings-advanced">
-          <summary>Other connections and advanced options</summary>
+          <summary id="settings-advanced-summary">Other connections and advanced options</summary>
           <label for="settings-provider">Connection to use</label>
           <select id="settings-provider">
             <option value="openai">OpenAI API</option>
@@ -51,7 +52,7 @@
         <div class="dialog-actions"><button class="button primary" id="save-settings" type="submit">Save connection</button><button class="button" id="test-connection" type="button">Test connection</button></div>
       </form>
       <p id="settings-test-message" class="dialog-message small" role="status"></p>
-      <p class="small muted">Testing checks sign-in or key access without running a paid research request. It does not confirm the model’s remaining usage or research quality.</p>
+      <p id="settings-test-explanation" class="small muted">Testing checks sign-in or key access without running a paid research request. It does not confirm the model’s remaining usage or research quality.</p>
       <div class="dialog-done"><button class="text-link" id="close-settings" type="button">Back to my idea</button></div>
     </dialog>
 

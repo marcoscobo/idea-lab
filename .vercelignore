@@ -1,0 +1,13 @@
+.git/
+.data/
+.env
+.env.*
+!.env.example
+node_modules/
+test/
+coverage/
+*.log
+.DS_Store
+preview.jpg
+Dockerfile
+.dockerignore
