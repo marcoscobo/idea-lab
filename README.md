@@ -2,6 +2,8 @@
 
 Turn a software idea into a sharper business hypothesis. Idea Lab investigates the customer’s job, compares alternatives, challenges the idea and narrows it into something you can test. Everything is in English, with three main tabs: **Workspace**, **Examples** and **How it works**.
 
+[Try Idea Lab online](https://idea-lab-tau.vercel.app). Use your own OpenAI API key for research. Examples and How it works are available without a key.
+
 ![Workflow preview](preview.jpg)
 
 - Set a budget of two to five research rounds, with explicit test and stop decisions.
@@ -101,7 +103,7 @@ Keep the generated value in Vercel environment settings, outside the repository 
 
 Do **not** configure an owner’s `OPENAI_API_KEY` on the public deployment. The online app requires a key from the individual visitor and does not use an owner-key fallback. There is no shared credential database: the encrypted cookie belongs to that browser and expires after 24 hours. API usage is billed to the account associated with the visitor’s key.
 
-The deployment configuration uses Node.js 22, `node scripts/build-vercel.mjs` as the build command, `dist` for static output and `api/index.mjs` for API requests, with a 300-second function duration. Each research round is a separate request; a slow round can time out before the overall round budget is exhausted. Review the deployed `/api/status` and Settings connection check before running research.
+The deployment configuration uses Node.js 22, `npm run build:vercel` as the build command, `dist` for static output and `api/index.mjs` for API requests, with a 300-second function duration. Each research round is a separate request; a slow round can time out before the overall round budget is exhausted. Review the deployed `/api/status` and Settings connection check before running research.
 
 Vercel Functions have a read-only application filesystem and temporary instance-local scratch space, so online settings use the encrypted session cookie rather than the local settings file. The configured duration fits the documented Hobby maximum with Fluid compute. See [Vercel runtime storage limits](https://vercel.com/docs/functions/runtimes#file-system-support), [function duration limits](https://vercel.com/docs/functions/configuring-functions/duration#duration-limits) and [deployment configuration](https://vercel.com/docs/project-configuration/vercel-json).
 
