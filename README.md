@@ -6,7 +6,7 @@ Turn a software idea into a sharper business hypothesis. Idea Lab investigates t
 
 ![Workflow preview](preview.jpg)
 
-- Set a budget of two to five research rounds, with explicit test and stop decisions.
+- Choose **Automatic** or **Review each round**. Start with up to three rounds and extend an investigation to five rounds in total.
 - Connect Jobs to Be Done, measurable requirements, competitors, counterideas and an evidence ledger.
 - Learn from three worked examples featuring Uber Eats, Slack / Microsoft Teams and Calendly.
 - Use an API online or an eligible subscription CLI locally, keep research in your browser and export an MVP implementation prompt.
@@ -42,12 +42,15 @@ The connection check verifies authentication only. It does not promise that a pa
 ## Use the Workspace
 
 1. Describe the software idea, intended customer, market and what you want to learn.
-2. Choose a research budget of two to five rounds and start.
-3. Review the conclusion and its reasoning. Open the detailed JTBD, requirements, competition, counterideas and evidence when useful.
-4. Add observations from real customers or experiments before continuing. Their scope and uncertainty remain visible.
-5. Generate an MVP implementation prompt when there is a useful test to build.
+2. Choose **Automatic** or **Review each round**. A new investigation starts with a budget of up to three rounds, with a maximum of five rounds across that investigation.
+3. In Automatic mode, let the app continue while targeted research is useful. In Review each round mode, inspect the result and choose **Run round N** when you are ready. Continuing adds the next round to the same investigation and history.
+4. Check the **analyzed idea**, the **proposed next idea**, what changed and what new information was found. Open the detailed JTBD, requirements, competition, counterideas and evidence when useful. A proposed direction still needs to be analyzed or tested.
+5. When research reaches **Test** or **Stop**, gather a real finding before choosing **Refine with this finding**. Record what happened, its source and its limits; the app carries your observations and earlier findings into subsequent rounds.
+6. Copy or download a test plan, including customer questions, or generate an MVP implementation prompt for the useful slice you want to build.
 
-The latest **12 investigation groups**, including their completed rounds, are saved in this browser. Export JSON for a separate backup and import it to resume elsewhere. Browser profiles do not synchronize. Cancelling a run preserves finished rounds and requests cancellation of the active call; provider usage already consumed remains consumed. Keep the local app open during an automatic run.
+The latest **12 investigation groups**, including their completed rounds, are saved in this browser. Export JSON for a separate backup and import it to resume elsewhere. Browser profiles do not synchronize. Use **Resume** or **Retry** after an interruption to continue the investigation while keeping its saved rounds. An unfinished provider request may need to run again.
+
+When you cancel, the app asks the active provider request to stop and keeps completed rounds. Provider usage already consumed remains consumed. Keep the app open during research. **Run round N**, Resume and Retry can make a new AI request; simply opening saved results does not.
 
 ## What the AI does
 
@@ -67,7 +70,9 @@ flowchart TD
   Decision -->|Fatal constraint or no useful next step| Stop[Stop and explain why]
 ```
 
-The app carries the selected refinement, contrary evidence, source limits and your observations into the next round. The round budget is a maximum: the AI should stop earlier when another model response cannot resolve the decisive question. At the budget boundary, the result should identify a test or a reason to stop.
+The app carries the selected refinement, contrary evidence, source limits and observations from earlier rounds into the next round. Each result separates the idea actually analyzed from the proposed next direction, and explains what changed and whether any new evidence was found. Review each round pauses between these steps; Automatic continues within the chosen budget when further research is useful.
+
+The budget is a maximum: the AI should stop earlier when another model response cannot resolve the decisive question. A Test or Stop decision asks for a real finding before re-examining the same premise. You can also use **Try a different direction** to select another proposed premise and research it in the same investigation. This changes the hypothesis; it does not establish demand. At the budget boundary, the app pauses so you can choose whether another round would be useful. The same investigation can contain at most five rounds.
 
 A clever niche, few search results or repeated AI agreement does not establish demand. No loop can invent interviews, transactions or pilot results. Proposed success thresholds are experiment plans, not achieved results.
 
@@ -75,7 +80,7 @@ For the API path, source URLs are checked against URLs returned by native web se
 
 ## Learn from the Examples
 
-Each case shows the broad starting idea, what existing products already do, the narrower business mechanism, who might pay, the biggest risk and a test that could kill the proposal. Open the full three-round analysis to inspect the details and sources, or use its suggested idea as a starting point.
+Each case shows the broad starting idea, what existing products already do, the narrower business mechanism, who might pay, the biggest risk and a test that could kill the proposal. Opening an example starts at its first round. Choose **See round N** to follow its three-round learning path and inspect the details and sources. These are saved results: opening or stepping through them makes no AI call. You can also use an example’s suggested idea as a starting point for your own investigation.
 
 - **Competing with Uber Eats:** move from another delivery app to a fixed weekly lunch-coordination service for three nearby offices. Compare configured group ordering and standing catering before assuming a gap.
 - **Competing with Slack / Microsoft Teams:** move from another messenger to one shift-handover receipt, while keeping existing communication tools. Compare it with a shared checklist and require worker agreement.
@@ -83,11 +88,13 @@ Each case shows the broad starting idea, what existing products already do, the 
 
 These are **curated worked examples with unvalidated demand**. They were authored as completed analysis walkthroughs; no customer interviews or pilots were performed. Product capabilities were checked on November 19, 2026 using [Uber Help](https://help.uber.com/en-GB/ubereats/restaurants/article/how-to-place-a-group-order?nodeId=886fdace-3cee-4658-9d3c-7cadfbec5280), [DoorDash Help](https://help.doordash.com/en-us/business/article/guide-to-group-orders), [Slack Help](https://slack.com/help/articles/203950418-Use-a-canvas-in-Slack), [Microsoft Support](https://support.microsoft.com/en-us/teams/shifts/schedule-staff-shifts), [Calendly Help](https://calendly.com/help/payments-faq) and [Google Calendar Help](https://support.google.com/calendar/answer/13762729?hl=en). Features and account eligibility can change.
 
-## The MVP handoff
+## Test plan and MVP handoff
+
+Copy or download a practical test plan from the saved research. It includes customer questions and the proposed experiment so you can gather a real finding before further refinement. The plan is assembled locally from the saved analysis; opening, copying or downloading it makes no AI call and does not run the experiment.
 
 Generate, copy or download an implementation prompt from the chosen analysis. It includes the target customer, selected scope, linked JTBD and requirements, acceptance metrics, objections, validation experiment, credential handling, one-container setup and checks to run. A STOP decision gates building the rejected business.
 
-Generating the prompt does not execute it, build the MVP or deploy anything. Paste it into your preferred coding assistant when you are ready to implement the proposed test.
+The implementation prompt is also assembled from saved research without another AI call. Generating it does not execute it, build the MVP or deploy anything. Paste it into your preferred coding assistant when you are ready to implement the proposed test.
 
 ## Deploy to Vercel
 
@@ -157,7 +164,7 @@ npm test
 Tests cover server and settings boundaries, mocked provider research, subscription preflight, credential isolation, process cancellation, evidence provenance, bounded iteration context, MVP prompt requirements and all nine example rounds. Test runs make no real model calls or quota charges. A live provider smoke check and a Docker build are separate checks; an installed CLI alone does not prove inference works.
 
 ```text
-public/       English UI, workflow helpers, demo and curated examples
+public/       English UI, tested loop runner, workflow helpers and curated examples
 lib/          Analysis contracts, prompts and provider adapters
 .data/        Private server settings, excluded from source and image
 api/          Online Node.js API entrypoint

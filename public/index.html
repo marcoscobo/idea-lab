@@ -70,13 +70,14 @@
       <form id="evidence-form">
         <button class="icon-button dialog-close" type="button" data-close-dialog="evidence-dialog" aria-label="Close observation form">×</button>
         <span class="eyebrow">WHAT YOU LEARNED IN THE REAL WORLD</span>
-        <h2 id="evidence-title">Add an observation</h2>
-        <p>Write what you actually saw and its limits. It will accompany the idea in the next refinement.</p>
+        <h2 id="evidence-title">What did you learn?</h2>
+        <p>Record a real observation, including a result that went against the idea. After saving, use Refine with this finding to run the next round.</p>
+        <p id="finding-target" class="small muted"></p>
         <label for="claim">What did you observe?</label><textarea id="claim" name="claim" required minlength="12" maxlength="1200" rows="3" placeholder="In four of six interviews, the team…"></textarea>
         <label for="evidence-url">Link to a source or record <span class="optional">Optional</span></label><input id="evidence-url" name="sourceUrl" type="url" placeholder="https://…" maxlength="2000">
         <label for="evidence-note">Context and limitations</label><textarea id="evidence-note" name="note" required maxlength="1200" rows="3" placeholder="When, how many people, what you asked, and what this cannot tell us yet…"></textarea>
         <p class="small muted">Saved as a user-reported observation until it has been independently checked.</p>
-        <div class="dialog-actions"><button class="button primary" type="submit">Save observation</button></div>
+        <div class="dialog-actions"><button class="button primary" type="submit">Save finding</button></div>
       </form>
     </dialog>
     <input id="import-file" type="file" accept="application/json,.json" hidden>
