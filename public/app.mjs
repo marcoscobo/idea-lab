@@ -13,7 +13,7 @@ const paths = {
   refine:'<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/>',
   evidence:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Zm0 0v6h6M8 13h8m-8 4h5"/>',
   download:'<path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/>', plus:'<path d="M12 5v14M5 12h14"/>',
-  settings:'<path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3H9Z"/><circle cx="12" cy="12" r="3"/>',
+  settings:'<path d="M11.118 3.043 L12.882 3.043 L14.032 5.301 L15.300 5.827 L17.710 5.043 L18.957 6.290 L18.173 8.700 L18.699 9.968 L20.957 11.118 L20.957 12.882 L18.699 14.032 L18.173 15.300 L18.957 17.710 L17.710 18.957 L15.300 18.173 L14.032 18.699 L12.882 20.957 L11.118 20.957 L9.968 18.699 L8.700 18.173 L6.290 18.957 L5.043 17.710 L5.827 15.300 L5.301 14.032 L3.043 12.882 L3.043 11.118 L5.301 9.968 L5.827 8.700 L5.043 6.290 L6.290 5.043 L8.700 5.827 L9.968 5.301 Z"/><circle cx="12" cy="12" r="3"/>',
   check:'<path d="m5 12 4 4L19 6"/>', folder:'<path d="M3 7V5h7l2 3h9v12H3V7Z"/>',
   link:'<path d="m10 13 4-4m-6 6-1 1a3 3 0 0 1-4-4l5-5a3 3 0 0 1 4 0m0 10a3 3 0 0 0 4 0l5-5a3 3 0 0 0-4-4l-1 1"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -25,7 +25,7 @@ const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="
 const mainTabs = [['workspace','Workspace'],['examples','Examples'],['how','How it works']];
 const providerNames = {openai:'OpenAI API',codex:'ChatGPT subscription',claude:'Claude subscription'};
 const STORE = 'idea-lab-v2';
-const defaultDraft = () => ({idea:'',audience:'',market:'United States',goal:'Find a first segment willing to pay',context:''});
+const defaultDraft = () => ({idea:'',audience:'',market:'European Union',goal:'Find a first segment willing to pay',context:''});
 const uid = () => globalThis.crypto?.randomUUID?.() || `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const textValue = value => typeof value === 'string' && value.length <= 25000;
 function validAnalysis(a) {
@@ -54,6 +54,8 @@ const safeFields=(value,keys)=>value&&typeof value==='object'?Object.fromEntries
 const storedAnalyses=Array.isArray(saved.analyses)?saved.analyses.filter(validAnalysis):[];
 const loopStates=Object.fromEntries(Object.entries(saved.loopStates||{}).filter(([id,value])=>id&&value&&typeof value==='object').map(([id,value])=>[id,{...value,status:value.status==='running'?'paused':value.status}]));
 let state={analyses:storedAnalyses,draft:{...defaultDraft(),...safeFields(saved.draft,['idea','audience','market','goal','context'])},activeId:saved.activeId,mainTab:mainTabs.some(([id])=>id===saved.mainTab)?saved.mainTab:saved.stage==='examples'?'examples':'workspace',workspaceMode:saved.workspaceMode==='compose'?'compose':saved.workspaceMode==='results'?'results':saved.stage==='idea'?'compose':storedAnalyses.some(a=>a.id===saved.activeId)?'results':'compose',resultTab:['overview','research','build'].includes(saved.resultTab)?saved.resultTab:'overview',rounds:Math.max(2,Math.min(5,Math.floor(Number(saved.rounds)||3))),mvpOptions:{stack:'',platform:'',notes:'',...safeFields(saved.mvpOptions,['stack','platform','notes'])},loopMode:saved.loopMode==='review'?'review':'auto',loopStates,howStep:0,busy:false,run:null,error:saved.running?'Your previous run was interrupted. Completed rounds and your idea are saved.':'',notice:'',settings:{provider:'openai',apiKeyConfigured:false,model:'',providers:[],runtime:'local',storage:'local',needsSessionSecret:false},settingsReady:false,settingsBusy:false,settingsDirty:false};
+// Update the old geographic default only for an empty, untouched idea.
+if(!state.draft.idea.trim()&&state.draft.market==='United States')state.draft.market='European Union';
 let runController;
 const current=()=>state.analyses.find(a=>a.id===state.activeId);
 const groupId=a=>a?.loop?.runId||a?.id;
