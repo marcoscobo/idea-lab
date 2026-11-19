@@ -1,0 +1,17 @@
+{
+  "name": "idea-lab",
+  "version": "0.3.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcoscobo/idea-lab.git"
+  },
+  "type": "module",
+  "description": "A simple workspace to improve a software idea with AI, understand the evidence, and prepare a focused build brief.",
+  "engines": { "node": ">=22.15.0" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "dev": "node --watch --env-file-if-exists=.env server.mjs",
+    "test": "node --test"
+  }
+}

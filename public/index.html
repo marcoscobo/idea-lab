@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#12382e">
+    <meta name="description" content="Turn a rough software idea into a specific direction, an honest first test and a focused build brief.">
+    <title>Idea Lab · A sharper starting point</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.mjs"></script>
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <dialog id="settings" aria-labelledby="settings-title">
+      <button class="icon-button dialog-close" data-close-dialog="settings" aria-label="Close connection settings">×</button>
+      <span class="eyebrow">YOUR AI CONNECTION</span>
+      <h2 id="settings-title">Connect once. Then start with an idea.</h2>
+      <p>Save the connection this app should use. It stays on the computer running Idea Lab.</p>
+      <form id="settings-form" autocomplete="off">
+        <div id="api-fields">
+          <label for="settings-key">OpenAI API key</label>
+          <input id="settings-key" type="password" autocomplete="new-password" spellcheck="false" maxlength="512" placeholder="Paste your API key">
+          <p id="key-state" class="small muted"></p>
+          <p class="small muted">Get a key from your <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI account</a>. API usage is billed separately from a ChatGPT subscription. The key is saved on the server, never in this browser’s saved investigations or build brief.</p>
+        </div>
+        <details class="optional-details settings-advanced">
+          <summary>Other connections and advanced options</summary>
+          <label for="settings-provider">Connection to use</label>
+          <select id="settings-provider">
+            <option value="openai">OpenAI API</option>
+            <option value="codex">ChatGPT subscription through Codex</option>
+            <option value="claude">Claude subscription through Claude Code</option>
+          </select>
+          <div id="subscription-help" hidden>
+            <p id="subscription-description" class="small"></p>
+            <p id="subscription-status" class="small muted"></p>
+            <p class="small muted">The official tool must be installed on the computer running this app. Sign in there using <code id="subscription-command">codex login</code>, then save and test the connection.</p>
+            <p class="small muted"><a href="https://developers.openai.com/codex/cli" target="_blank" rel="noopener noreferrer">Codex setup</a> · <a href="https://code.claude.com/docs/en/setup" target="_blank" rel="noopener noreferrer">Claude Code setup</a></p>
+          </div>
+          <label for="settings-model">API model</label>
+          <input id="settings-model" maxlength="120" placeholder="Keep the suggested model">
+          <p class="small muted">Only used by the OpenAI API connection. Leave the suggested value unless you need another model available to your account.</p>
+          <label class="checkbox-label" for="settings-clear-key"><input id="settings-clear-key" type="checkbox">Remove the saved API key</label>
+          <p class="small muted">Leaving the key field empty keeps the current key. Removing it turns off the API connection until you add one again.</p>
+        </details>
+        <p id="settings-message" class="dialog-message" role="status"></p>
+        <div class="dialog-actions"><button class="button primary" id="save-settings" type="submit">Save connection</button><button class="button" id="test-connection" type="button">Test connection</button></div>
+      </form>
+      <p id="settings-test-message" class="dialog-message small" role="status"></p>
+      <p class="small muted">Testing checks sign-in or key access without running a paid research request. It does not confirm the model’s remaining usage or research quality.</p>
+      <div class="dialog-done"><button class="text-link" id="close-settings" type="button">Back to my idea</button></div>
+    </dialog>
+
+    <dialog id="import-dialog" aria-labelledby="import-title">
+      <button class="icon-button dialog-close" data-close-dialog="import-dialog" aria-label="Close backup restore">×</button>
+      <span class="eyebrow">YOUR SAVED WORK</span>
+      <h2 id="import-title">Restore an investigation backup</h2>
+      <p>Choose a backup previously saved from Idea Lab. It contains your completed rounds, sources and observations.</p>
+      <button class="button primary" id="choose-import-file" type="button">Choose backup file</button>
+      <p id="import-error" class="dialog-message error-text" role="alert"></p>
+      <p class="small muted">Restored findings still need the same source checks and real-world tests as the original investigation.</p>
+    </dialog>
+
+    <dialog id="evidence-dialog" aria-labelledby="evidence-title">
+      <form id="evidence-form">
+        <button class="icon-button dialog-close" type="button" data-close-dialog="evidence-dialog" aria-label="Close observation form">×</button>
+        <span class="eyebrow">WHAT YOU LEARNED IN THE REAL WORLD</span>
+        <h2 id="evidence-title">Add an observation</h2>
+        <p>Write what you actually saw and its limits. It will accompany the idea in the next refinement.</p>
+        <label for="claim">What did you observe?</label><textarea id="claim" name="claim" required minlength="12" maxlength="1200" rows="3" placeholder="In four of six interviews, the team…"></textarea>
+        <label for="evidence-url">Link to a source or record <span class="optional">Optional</span></label><input id="evidence-url" name="sourceUrl" type="url" placeholder="https://…" maxlength="2000">
+        <label for="evidence-note">Context and limitations</label><textarea id="evidence-note" name="note" required maxlength="1200" rows="3" placeholder="When, how many people, what you asked, and what this cannot tell us yet…"></textarea>
+        <p class="small muted">Saved as a user-reported observation until it has been independently checked.</p>
+        <div class="dialog-actions"><button class="button primary" type="submit">Save observation</button></div>
+      </form>
+    </dialog>
+    <input id="import-file" type="file" accept="application/json,.json" hidden>
+  </body>
+</html>
